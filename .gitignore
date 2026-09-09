@@ -1,0 +1,36 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfplan.*
+crash.log
+crash.*.log
+*.tfvars.json
+
+# Local environment and secret files
+.env
+.env.*
+!.env.example
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Private keys and certificates
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+
+# Kubernetes credentials and generated secrets
+kubeconfig
+kubeconfig.*
+*.kubeconfig
+*-kubeconfig
+secrets.yaml
+secrets.yml
+
+# Common generated artifacts
+*.zip
+*.tar
+*.tar.gz
