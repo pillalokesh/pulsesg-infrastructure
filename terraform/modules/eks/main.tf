@@ -20,6 +20,146 @@ data "aws_iam_policy_document" "ebs_assume" {
     }
   }
 }
+data "aws_iam_policy_document" "load_balancer_controller_assume" {
+  count = var.load_balancer_controller_enabled ? 1 : 0
+
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.this.arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_eks_cluster.this.identity[0].oidc[0].issuer, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_eks_cluster.this.identity[0].oidc[0].issuer, "https://", "")}:sub"
+      values   = ["system:serviceaccount:${var.load_balancer_controller_namespace}:${var.load_balancer_controller_service_account}"]
+    }
+  }
+}
+data "aws_iam_policy_document" "load_balancer_controller_permissions" {
+  count = var.load_balancer_controller_enabled ? 1 : 0
+
+  statement {
+    actions   = ["iam:CreateServiceLinkedRole"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "iam:AWSServiceName"
+      values   = ["elasticloadbalancing.amazonaws.com"]
+    }
+  }
+
+  statement {
+    actions = [
+      "ec2:DescribeAccountAttributes",
+      "ec2:DescribeAddresses",
+      "ec2:DescribeAvailabilityZones",
+      "ec2:DescribeCoipPools",
+      "ec2:DescribeInstances",
+      "ec2:DescribeInstanceStatus",
+      "ec2:DescribeInternetGateways",
+      "ec2:DescribeIpamPools",
+      "ec2:DescribeIpams",
+      "ec2:DescribePrefixLists",
+      "ec2:DescribeRouteTables",
+      "ec2:DescribeSecurityGroupRules",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeTags",
+      "ec2:DescribeVpcs",
+      "ec2:GetCoipPoolUsage",
+      "ec2:GetManagedPrefixListEntries",
+      "ec2:GetSecurityGroupsForVpc",
+      "elasticloadbalancing:DescribeListenerAttributes",
+      "elasticloadbalancing:DescribeListenerCertificates",
+      "elasticloadbalancing:DescribeListeners",
+      "elasticloadbalancing:DescribeLoadBalancerAttributes",
+      "elasticloadbalancing:DescribeLoadBalancers",
+      "elasticloadbalancing:DescribeRules",
+      "elasticloadbalancing:DescribeSSLPolicies",
+      "elasticloadbalancing:DescribeTags",
+      "elasticloadbalancing:DescribeTargetGroupAttributes",
+      "elasticloadbalancing:DescribeTargetGroups",
+      "elasticloadbalancing:DescribeTargetHealth",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    actions = [
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:CreateSecurityGroup",
+      "ec2:CreateTags",
+      "ec2:DeleteSecurityGroup",
+      "ec2:DeleteTags",
+      "ec2:RevokeSecurityGroupEgress",
+      "ec2:RevokeSecurityGroupIngress",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    actions   = ["ec2:CreateTags", "ec2:DeleteTags"]
+    resources = ["arn:aws:ec2:*:*:security-group/*"]
+  }
+
+  statement {
+    actions = [
+      "elasticloadbalancing:AddListenerCertificates",
+      "elasticloadbalancing:AddTags",
+      "elasticloadbalancing:CreateListener",
+      "elasticloadbalancing:CreateLoadBalancer",
+      "elasticloadbalancing:CreateRule",
+      "elasticloadbalancing:CreateTargetGroup",
+      "elasticloadbalancing:DeleteListener",
+      "elasticloadbalancing:DeleteLoadBalancer",
+      "elasticloadbalancing:DeleteRule",
+      "elasticloadbalancing:DeleteTargetGroup",
+      "elasticloadbalancing:DeregisterTargets",
+      "elasticloadbalancing:ModifyListener",
+      "elasticloadbalancing:ModifyListenerAttributes",
+      "elasticloadbalancing:ModifyLoadBalancerAttributes",
+      "elasticloadbalancing:ModifyRule",
+      "elasticloadbalancing:ModifyTargetGroup",
+      "elasticloadbalancing:ModifyTargetGroupAttributes",
+      "elasticloadbalancing:RegisterTargets",
+      "elasticloadbalancing:RemoveListenerCertificates",
+      "elasticloadbalancing:RemoveTags",
+      "elasticloadbalancing:SetIpAddressType",
+      "elasticloadbalancing:SetRulePriorities",
+      "elasticloadbalancing:SetSecurityGroups",
+      "elasticloadbalancing:SetSubnets",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    actions = [
+      "acm:DescribeCertificate",
+      "acm:ListCertificates",
+      "cognito-idp:DescribeUserPoolClient",
+      "iam:ListServerCertificates",
+      "waf-regional:GetWebACL",
+      "waf-regional:GetWebACLForResource",
+      "waf-regional:AssociateWebACL",
+      "waf-regional:DisassociateWebACL",
+      "wafv2:GetWebACL",
+      "wafv2:GetWebACLForResource",
+      "wafv2:AssociateWebACL",
+      "wafv2:DisassociateWebACL",
+      "shield:DescribeProtection",
+      "shield:GetSubscriptionState",
+      "shield:ListProtections",
+    ]
+    resources = ["*"]
+  }
+}
 resource "aws_eks_cluster" "this" {
   name                      = var.name
   role_arn                  = var.cluster_role_arn
@@ -68,6 +208,18 @@ resource "aws_iam_role_policy_attachment" "ebs_csi" {
   role       = aws_iam_role.ebs_csi.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
+resource "aws_iam_role" "load_balancer_controller" {
+  count              = var.load_balancer_controller_enabled ? 1 : 0
+  name               = "${var.name}-aws-load-balancer-controller"
+  assume_role_policy = data.aws_iam_policy_document.load_balancer_controller_assume[0].json
+  tags               = var.tags
+}
+resource "aws_iam_role_policy" "load_balancer_controller" {
+  count  = var.load_balancer_controller_enabled ? 1 : 0
+  name   = "${var.name}-aws-load-balancer-controller"
+  role   = aws_iam_role.load_balancer_controller[0].id
+  policy = data.aws_iam_policy_document.load_balancer_controller_permissions[0].json
+}
 resource "aws_eks_addon" "this" {
   for_each = {
     vpc_cni    = { name = "vpc-cni", role_arn = null }
@@ -97,5 +249,8 @@ resource "aws_eks_access_policy_association" "this" {
   cluster_name  = aws_eks_cluster.this.name
   principal_arn = var.access_entries[each.value.entry_key].principal_arn
   policy_arn    = each.value.policy_arn
-  access_scope { type = "cluster" }
+  access_scope {
+    type       = var.access_entries[each.value.entry_key].access_scope.type
+    namespaces = var.access_entries[each.value.entry_key].access_scope.type == "namespace" ? var.access_entries[each.value.entry_key].access_scope.namespaces : null
+  }
 }

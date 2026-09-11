@@ -11,8 +11,22 @@ cluster_api_allowed_cidrs = ["0.0.0.0/0"]
 node_groups = {
   general = { instance_types = ["t3.medium"], desired_size = 2, min_size = 1, max_size = 4, disk_size = 50, labels = { workload = "general" } }
 }
-ecr_repository_names           = ["app1", "app2", "app3"]
-ecr_force_delete               = false
-create_jenkins_role            = false
-jenkins_trusted_principal_arns = []
-jenkins_role_arn               = null
+ecr_repository_names                  = ["app1", "app2", "app3"]
+ecr_force_delete                      = false
+create_jenkins_role                   = false
+jenkins_trusted_principal_arns        = []
+jenkins_role_arn                      = null
+jenkins_principal_arn                 = "arn:aws:iam::385168913795:user/lokeshpilla"
+jenkins_kubernetes_access_policy_arns = ["arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"]
+jenkins_kubernetes_access_scope       = { type = "namespace", namespaces = ["pulsesg-dev"] }
+load_balancer_controller_enabled      = true
+rds_identifier                        = "pulsesg-dev-pulsorastore"
+rds_engine_version                    = "16"
+rds_instance_class                    = "db.t3.micro"
+rds_allocated_storage                 = 20
+rds_database_name                     = "pulsorastore"
+rds_master_username                   = "pulsorastore_admin"
+rds_port                              = 5432
+rds_backup_retention_period           = 7
+rds_deletion_protection               = false
+rds_skip_final_snapshot               = true

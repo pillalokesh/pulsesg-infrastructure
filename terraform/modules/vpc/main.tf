@@ -17,14 +17,14 @@ resource "aws_subnet" "public" {
   availability_zone       = each.key
   cidr_block              = each.value.public
   map_public_ip_on_launch = true
-  tags                    = merge(var.tags, { Name = "${var.name}-public-${each.key}", "kubernetes.io/role/elb" = "1", "kubernetes.io/cluster/${var.name}" = "shared" })
+  tags                    = merge(var.tags, { Name = "${var.name}-public-${each.key}", "kubernetes.io/role/elb" = "1", "kubernetes.io/cluster/${var.cluster_name}" = "shared" })
 }
 resource "aws_subnet" "private" {
   for_each          = local.subnets
   vpc_id            = aws_vpc.this.id
   availability_zone = each.key
   cidr_block        = each.value.private
-  tags              = merge(var.tags, { Name = "${var.name}-private-${each.key}", "kubernetes.io/role/internal-elb" = "1", "kubernetes.io/cluster/${var.name}" = "shared" })
+  tags              = merge(var.tags, { Name = "${var.name}-private-${each.key}", "kubernetes.io/role/internal-elb" = "1", "kubernetes.io/cluster/${var.cluster_name}" = "shared" })
 }
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.this.id

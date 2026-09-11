@@ -26,3 +26,35 @@ variable "jenkins_role_arn" {
   type    = string
   default = null
 }
+variable "jenkins_principal_arn" {
+  type    = string
+  default = null
+}
+variable "jenkins_kubernetes_access_policy_arns" {
+  type    = set(string)
+  default = ["arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"]
+}
+variable "jenkins_kubernetes_access_scope" {
+  type = object({
+    type       = string
+    namespaces = set(string)
+  })
+  default = {
+    type       = "namespace"
+    namespaces = ["pulsesg-dev"]
+  }
+}
+variable "load_balancer_controller_enabled" {
+  type    = bool
+  default = true
+}
+variable "rds_identifier" { type = string }
+variable "rds_engine_version" { type = string }
+variable "rds_instance_class" { type = string }
+variable "rds_allocated_storage" { type = number }
+variable "rds_database_name" { type = string }
+variable "rds_master_username" { type = string }
+variable "rds_port" { type = number }
+variable "rds_backup_retention_period" { type = number }
+variable "rds_deletion_protection" { type = bool }
+variable "rds_skip_final_snapshot" { type = bool }
